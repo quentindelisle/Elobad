@@ -1,0 +1,15 @@
+{
+  "name": "ELOBAD — Tournoi EPS by Quentin Delisle",
+  "short_name": "ELOBAD",
+  "description": "Application de tournoi ELO pour le Badminton, le Tennis de table et autres sports de raquette en EPS — By Quentin Delisle",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "fullscreen",
+  "orientation": "landscape",
+  "background_color": "#050C22",
+  "theme_color": "#050C22",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

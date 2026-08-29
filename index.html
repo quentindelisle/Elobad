@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#050C22">
+<title>ELOBAD — Tournoi EPS</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800;900&family=Rubik:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div id="app">
+
+  <!-- ============ MAIN ============ -->
+  <div class="main">
+    <header class="topbar">
+      <div class="topbar-brand">
+        <div class="logo-wrap"><img src="logo.png" alt="EloBad"></div>
+        <h1>EloBad</h1>
+      </div>
+      <nav class="nav-btns">
+        <button class="nav-btn" data-view="home">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l9-7 9 7M5 10v10h14V10"/></svg>
+          Classes
+        </button>
+        <button class="nav-btn" data-view="ranking">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 21V10M14 21V3M20 21v-7M2 21h20"/></svg>
+          Classement
+        </button>
+        <button class="nav-btn" data-view="admin">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 00.34 1.87l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.7 1.7 0 00-1.87-.34 1.7 1.7 0 00-1 1.55V21a2 2 0 11-4 0v-.09a1.7 1.7 0 00-1-1.55 1.7 1.7 0 00-1.87.34l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.7 1.7 0 00.34-1.87 1.7 1.7 0 00-1.55-1H3a2 2 0 110-4h.09a1.7 1.7 0 001.55-1 1.7 1.7 0 00-.34-1.87l-.06-.06a2 2 0 112.83-2.83l.06.06a1.7 1.7 0 001.87.34H9a1.7 1.7 0 001-1.55V3a2 2 0 114 0v.09a1.7 1.7 0 001 1.55 1.7 1.7 0 001.87-.34l.06-.06a2 2 0 112.83 2.83l-.06.06a1.7 1.7 0 00-.34 1.87V9a1.7 1.7 0 001.55 1H21a2 2 0 110 4h-.09a1.7 1.7 0 00-1.55 1z"/></svg>
+          Admin
+        </button>
+      </nav>
+      <div class="class-pill" id="classPill" style="display:none;">
+        <select id="classSelect"></select>
+        <span class="badge-count" id="classCount">0</span>
+      </div>
+      <button class="btn secondary small" id="btnImportJsonHome" title="Importer un fichier JSON de classement">⬆ Importer JSON</button>
+      <input type="file" id="importJsonHomeFile" accept=".json" class="hidden">
+      <div class="topbar-school-logo"><img src="logo-lmc-icon.png" alt="Lycée Monge La Chauvinière"></div>
+    </header>
+
+    <!-- ---- VIEW: HOME / CLASSES ---- -->
+    <section class="view" id="view-home">
+      <div class="section-title"><h2>Mes classes</h2><span class="tag" id="homeYear"></span></div>
+      <div class="class-grid" id="classGrid"></div>
+    </section>
+
+    <!-- ---- VIEW: RANKING (hub principal — cartes cliquables + dernier match) ---- -->
+    <section class="view hidden" id="view-ranking">
+      <div class="tiles-toolbar">
+        <div class="section-title" style="margin:0;"><h2>Classement ELO</h2><span class="tag" id="rankingClassName"></span></div>
+        <input class="input" id="tileSearch" placeholder="🔍 Rechercher un élève..." style="max-width:220px; margin-left:auto;">
+        <button class="btn secondary small" id="btnExportExcel">📊 Excel</button>
+      </div>
+      <div class="tiles-grid" id="tilesGrid"></div>
+    </section>
+
+    <!-- ---- VIEW: MATCH ---- -->
+    <section class="view hidden" id="view-match">
+      <div class="match-header">
+        <button class="btn secondary small" id="btnBackToTiles">← Retour</button>
+        <div class="match-settings-strip" id="matchSettingsStrip"></div>
+      </div>
+
+      <div class="vs-board" id="vsBoard"></div>
+      <div class="sets-strip" id="setsStrip"></div>
+
+      <div class="dials-row" id="dialsRow"></div>
+
+      <div class="match-extra-row">
+        <div class="field" style="max-width:200px;margin-bottom:0;">
+          <label class="field-label">📅 Séance</label>
+          <input class="input" id="matchSessionInput" placeholder="ex: Séance 3">
+        </div>
+        <div class="field" style="max-width:220px;margin-bottom:0;">
+          <label class="field-label">👤 Arbitre (optionnel)</label>
+          <select class="input" id="matchRefereeSelect"><option value="">— Aucun —</option></select>
+        </div>
+        <div class="abandon-row" id="abandonRow"></div>
+      </div>
+
+      <div class="masteries-panel" id="matchMasteriesPanel"></div>
+
+      <div class="match-actions">
+        <button class="btn ghost small hidden" id="btnUndoLastSet">↩ Annuler le dernier set</button>
+        <button class="btn lime" id="btnValidateSet">✔ Valider le set</button>
+        <button class="btn pink hidden" id="btnFinishMatch">🏆 Terminer le match</button>
+      </div>
+    </section>
+
+    <!-- ---- VIEW: ADMIN ---- -->
+    <section class="view hidden" id="view-admin">
+      <div class="admin-lock" id="adminLock">
+        <div class="card lock-card">
+          <div class="icon">🔒</div>
+          <h3>Accès Administrateur</h3>
+          <p style="color:var(--ink-soft); font-size:13px; margin:8px 0 16px;">Entre le code enseignant pour accéder aux réglages du tournoi.</p>
+          <input class="input" id="adminPassInput" type="password" inputmode="numeric" placeholder="Code (4 chiffres)" style="text-align:center; font-size:20px; letter-spacing:6px; margin-bottom:12px;">
+          <button class="btn pink" id="btnAdminUnlock" style="width:100%;">Déverrouiller</button>
+        </div>
+      </div>
+
+      <div id="adminContent" class="hidden">
+        <div class="admin-unlocked-banner">
+          <span>🔓 Administration déverrouillée pour cette session</span>
+          <button class="btn secondary small" id="btnLockAdmin">🔒 Verrouiller</button>
+        </div>
+        <div class="tabs-sub">
+          <button class="active" data-panel="panel-classe">Classe & élèves</button>
+          <button data-panel="panel-format">Format du match</button>
+          <button data-panel="panel-elo">Réglages ELO</button>
+          <button data-panel="panel-maitrises">Maîtrises</button>
+          <button data-panel="panel-historique">Historique & suppression</button>
+          <button data-panel="panel-data">Sauvegarde / Import</button>
+        </div>
+
+        <!-- CLASSE -->
+        <div class="admin-panel active" id="panel-classe">
+          <div class="card">
+            <div class="section-title"><h2>Classe active</h2></div>
+            <div class="field"><label class="field-label">Nom de la classe</label><input class="input" id="editClassName"></div>
+            <div class="row" style="gap:10px;">
+              <button class="btn secondary small" id="btnSaveClassMeta">💾 Enregistrer</button>
+              <button class="btn danger small" id="btnDeleteClass">🗑 Supprimer cette classe</button>
+            </div>
+          </div>
+          <div class="card" style="margin-top:16px;">
+            <div class="section-title"><h2>🔐 Sécurité</h2></div>
+            <p style="font-size:12px;color:var(--ink-soft);margin-bottom:10px;">Ce code protège l'accès à l'Administration pour cette classe. Il est redemandé à chaque fois que tu quittes cet écran.</p>
+            <div class="field" style="max-width:220px;"><label class="field-label">Code administrateur</label><input class="input" id="editAdminPass" maxlength="12" style="text-align:center;letter-spacing:3px;font-weight:800;"></div>
+            <button class="btn secondary small" id="btnSaveAdminPass">💾 Changer le code</button>
+          </div>
+          <div class="card" style="margin-top:16px;">
+            <div class="section-title"><h2>Élèves</h2><span class="tag" id="studentCountTag">0</span></div>
+            <div class="row" style="margin-bottom:12px; gap:10px;">
+              <button class="btn secondary small" id="btnAddStudentManual">+ Ajouter un élève</button>
+              <button class="btn secondary small" id="btnResetElo">↺ Réinitialiser tous les ELO à 100</button>
+            </div>
+            <div id="studentAdminList"></div>
+          </div>
+        </div>
+
+        <!-- FORMAT MATCH -->
+        <div class="admin-panel" id="panel-format">
+          <div class="card">
+            <div class="section-title"><h2>Paramètres par défaut du match</h2></div>
+            <div class="settings-grid">
+              <div class="field">
+                <label class="field-label">Sport</label>
+                <select class="input" id="defSport">
+                  <option value="tennis_de_table">Tennis de table</option>
+                  <option value="badminton">Badminton</option>
+                  <option value="autre">Autre</option>
+                </select>
+              </div>
+              <div class="field">
+                <label class="field-label">Mode de sets</label>
+                <select class="input" id="defSetsMode">
+                  <option value="gagnants">X sets gagnants</option>
+                  <option value="total">Nombre de sets fixe</option>
+                </select>
+              </div>
+              <div class="field">
+                <label class="field-label" id="defSetsTargetLabel">Sets gagnants</label>
+                <select class="input" id="defSetsTarget">
+                  <option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option>
+                </select>
+              </div>
+              <div class="field">
+                <label class="field-label">Vainqueur déterminé par</label>
+                <select class="input" id="defTiebreak">
+                  <option value="sets">Nombre de sets remportés</option>
+                  <option value="goalaverage">Goal-average (points marqués)</option>
+                </select>
+              </div>
+              <div class="field">
+                <label class="field-label">Règle de score</label>
+                <select class="input" id="defWinBy2">
+                  <option value="0">Score sec</option>
+                  <option value="1">2 points d'écart obligatoire</option>
+                </select>
+              </div>
+              <div class="field">
+                <label class="field-label">Arbitre obligatoire</label>
+                <label class="switch" style="margin-top:8px;"><input type="checkbox" id="defReferee"><span class="slider"></span></label>
+              </div>
+            </div>
+            <div class="field" style="margin-top:14px;">
+              <label class="field-label">Points à atteindre — par set</label>
+              <div class="pts-per-set-grid">
+                <div class="pts-col" id="ptsCol1"><span>Set 1</span><input class="input input-compact" type="number" min="1" max="99" id="pts1" value="11"></div>
+                <div class="pts-col" id="ptsCol2"><span>Set 2</span><input class="input input-compact" type="number" min="1" max="99" id="pts2" value="11"></div>
+                <div class="pts-col" id="ptsCol3"><span>Set 3</span><input class="input input-compact" type="number" min="1" max="99" id="pts3" value="11"></div>
+                <div class="pts-col" id="ptsCol4"><span>Set 4</span><input class="input input-compact" type="number" min="1" max="99" id="pts4" value="11"></div>
+                <div class="pts-col" id="ptsCol5"><span>Set 5</span><input class="input input-compact" type="number" min="1" max="99" id="pts5" value="11"></div>
+              </div>
+            </div>
+            <button class="btn secondary small" id="btnSaveFormat" style="margin-top:14px;">💾 Enregistrer le format par défaut</button>
+          </div>
+        </div>
+
+        <!-- ELO -->
+        <div class="admin-panel" id="panel-elo">
+          <div class="card">
+            <div class="section-title"><h2>Mode ELO</h2></div>
+            <div class="chip-group" id="eloModeChips">
+              <button class="chip" data-mode="fixe">ELO fixe</button>
+              <button class="chip active" data-mode="variable">ELO Variable</button>
+            </div>
+          </div>
+
+          <div class="card" style="margin-top:14px;" id="eloFixeCard">
+            <div class="section-title"><h2>ELO fixe</h2></div>
+            <div class="grid-2">
+              <div class="field"><label class="field-label">Points par victoire</label><input class="input input-compact" type="number" id="fixWin" value="5"></div>
+              <div class="field"><label class="field-label">Points par défaite</label><input class="input input-compact" type="number" id="fixLoss" value="-3"></div>
+            </div>
+          </div>
+
+          <div class="card" style="margin-top:14px;" id="eloVarCard">
+            <div class="section-title"><h2>ELO variable — Gains en cas de VICTOIRE</h2></div>
+            <p style="font-size:12px;color:var(--ink-soft);margin-bottom:10px;">Selon l'écart d'ELO (%) entre l'adversaire et le joueur.</p>
+            <div class="settings-grid" id="varWinGrid"></div>
+          </div>
+          <div class="card" style="margin-top:14px;">
+            <div class="section-title"><h2>ELO variable — Pertes en cas de DÉFAITE</h2></div>
+            <div class="settings-grid" id="varLossGrid"></div>
+          </div>
+
+          <div class="card" style="margin-top:14px;">
+            <div class="section-title"><h2>Gagner / Perdre avec la manière</h2></div>
+            <div class="grid-2">
+              <div>
+                <label class="field-label">Bonus vainqueur (écart de points)</label>
+                <div class="row"><span style="width:120px;font-size:12px;">≥ <input class="input input-compact" type="number" id="styleWinM1" value="5"> pts →</span><input class="input input-compact" type="number" id="styleWinB1" value="1"> ELO</div>
+                <div class="row" style="margin-top:6px;"><span style="width:120px;font-size:12px;">≥ <input class="input input-compact" type="number" id="styleWinM2" value="8"> pts →</span><input class="input input-compact" type="number" id="styleWinB2" value="2"> ELO</div>
+              </div>
+              <div>
+                <label class="field-label">Bonus vaincu (match serré)</label>
+                <div class="row"><span style="width:120px;font-size:12px;">&lt; <input class="input input-compact" type="number" id="styleLossM1" value="3"> pts →</span><input class="input input-compact" type="number" id="styleLossB1" value="1"> ELO</div>
+                <div class="row" style="margin-top:6px;"><span style="width:120px;font-size:12px;">= <input class="input input-compact" type="number" id="styleLossM2" value="1"> pt →</span><input class="input input-compact" type="number" id="styleLossB2" value="2"> ELO</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card" style="margin-top:14px;">
+            <div class="section-title"><h2>Bonus du leader</h2></div>
+            <div class="row">
+              <span style="font-size:13px;">Le n°1 du classement gagne un bonus après</span>
+              <input class="input input-compact" type="number" id="leaderStreak" value="3">
+              <span style="font-size:13px;">victoires consécutives en restant 1er →</span>
+              <input class="input input-compact" type="number" id="leaderBonus" value="10">
+              <span style="font-size:13px;">ELO</span>
+            </div>
+          </div>
+
+          <button class="btn secondary small" id="btnSaveElo" style="margin-top:14px;">💾 Enregistrer les réglages ELO</button>
+        </div>
+
+        <!-- MAITRISES -->
+        <div class="admin-panel" id="panel-maitrises">
+          <div class="card">
+            <div class="section-title"><h2>Maîtrises</h2><span class="tag">Récompenses ELO hors match</span></div>
+            <div id="masteryList"></div>
+            <button class="btn secondary small" id="btnAddMastery" style="margin-top:8px;">+ Ajouter une maîtrise</button>
+          </div>
+          <div class="card" style="margin-top:16px;">
+            <div class="section-title"><h2>Attribuer une maîtrise</h2></div>
+            <div class="grid-3">
+              <div class="field"><label class="field-label">Élève</label><select class="input" id="awardStudent"></select></div>
+              <div class="field"><label class="field-label">Maîtrise</label><select class="input" id="awardMastery"></select></div>
+              <div class="field"><label class="field-label">Séance</label><input class="input" id="awardSession" placeholder="ex: Séance 3"></div>
+            </div>
+            <button class="btn lime small" id="btnAwardMastery">🏅 Attribuer</button>
+          </div>
+        </div>
+
+        <!-- HISTORIQUE -->
+        <div class="admin-panel" id="panel-historique">
+          <div class="card">
+            <div class="section-title"><h2>Historique des performances</h2><span class="tag">Suppression possible</span></div>
+            <div id="historyList"></div>
+          </div>
+        </div>
+
+        <!-- DATA -->
+        <div class="admin-panel" id="panel-data">
+          <div class="card">
+            <div class="section-title"><h2>Sauvegarde</h2></div>
+            <div class="row wrap" style="gap:10px;">
+              <button class="btn secondary small" id="btnExportJson">⬇ Exporter (JSON complet)</button>
+              <button class="btn secondary small" id="btnImportJsonBtn">⬆ Importer un JSON</button>
+              <input type="file" id="importJsonFile" accept=".json" class="hidden">
+              <button class="btn secondary small" id="btnExportExcel2">📊 Exporter le classement (Excel)</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </div>
+</div>
+
+<!-- ============ MODALS ============ -->
+<div class="modal-backdrop hidden" id="modalNewClass">
+  <div class="modal" style="max-width:520px;">
+    <h3>Nouvelle classe</h3>
+    <div class="field"><label class="field-label">Nom de la classe</label><input class="input" id="newClassName" placeholder="ex: 4°B"></div>
+    <div class="chip-group" style="margin-bottom:14px;">
+      <button class="chip" data-import="manual">Saisie manuelle</button>
+      <button class="chip active" data-import="csv">Import CSV / Excel</button>
+    </div>
+    <div id="manualImportZone">
+      <div id="manualRows"></div>
+      <button class="btn secondary small" id="btnAddManualRow">+ Ajouter un élève</button>
+    </div>
+    <div id="csvImportZone" class="hidden">
+      <div class="csv-drop" id="csvDropZone">📄 Clique pour choisir le fichier de ta classe (CSV, XLS ou XLSX)<br><span style="font-size:11px;">Colonne A : NOM Prénom</span></div>
+      <input type="file" id="csvFileInput" accept=".csv,.txt,.xls,.xlsx" class="hidden">
+      <div class="import-preview hidden" id="csvPreview"></div>
+    </div>
+    <p class="modal-error hidden" id="newClassError"></p>
+    <div class="row" style="margin-top:18px; gap:10px; justify-content:flex-end;">
+      <button class="btn secondary" id="btnCancelNewClass">Annuler</button>
+      <button class="btn pink" id="btnCreateClass">Créer la classe</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop hidden" id="modalProfile">
+  <div class="modal">
+    <button class="btn ghost modal-close" id="closeProfile">✕</button>
+    <div class="profile-head">
+      <div class="avatar-lg" id="profileAvatar"></div>
+      <div>
+        <h3 id="profileName"></h3>
+        <div class="sub" id="profileRank"></div>
+      </div>
+    </div>
+    <div class="stat-grid" id="profileStats"></div>
+    <h4 style="margin-bottom:8px;font-size:14px;">Choisir un adversaire</h4>
+    <div class="opponent-list" id="opponentList"></div>
+  </div>
+</div>
+
+<div class="modal-backdrop hidden" id="modalRecap">
+  <div class="modal" style="max-width:460px; text-align:center;">
+    <h3 id="recapTitle">🏆 Fin du match</h3>
+    <div id="recapBody" style="margin:16px 0;"></div>
+    <div class="row" style="gap:10px;">
+      <button class="btn secondary" id="btnCancelRecap" style="flex:1;">↩ Annuler</button>
+      <button class="btn pink" id="btnSaveMatch" style="flex:2;">💾 Enregistrer le match</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop hidden" id="modalMastery">
+  <div class="modal" style="max-width:440px;">
+    <button class="btn ghost modal-close" id="closeMasteryModal">✕</button>
+    <h3 id="masteryModalTitle">Nouvelle maîtrise</h3>
+    <div class="field"><label class="field-label">Nom</label><input class="input" id="mstName" placeholder="ex: Maîtrise Service"></div>
+    <div class="field"><label class="field-label">Critère à remplir</label><input class="input" id="mstDescription" placeholder="ex: 3 services réussis"></div>
+    <div class="grid-2">
+      <div class="field"><label class="field-label">Sport concerné</label>
+        <select class="input" id="mstSport">
+          <option value="general">🎖 Général (tous sports)</option>
+          <option value="badminton">🏸 Badminton</option>
+          <option value="tennis_de_table">🏓 Tennis de table</option>
+        </select>
+      </div>
+      <div class="field"><label class="field-label">ELO attribué</label><input class="input input-compact" type="number" id="mstElo" value="2" style="width:100%!important;"></div>
+    </div>
+    <div class="field">
+      <label class="field-label">S'applique à</label>
+      <div class="chip-group" id="mstScopeChips">
+        <button type="button" class="chip active" data-scope="tous">Tous</button>
+        <button type="button" class="chip" data-scope="arbitre">Arbitres uniquement</button>
+        <button type="button" class="chip" data-scope="joueurs">Joueurs uniquement</button>
+      </div>
+    </div>
+    <button class="btn pink" id="btnSaveMastery" style="width:100%;margin-top:8px;">💾 Enregistrer la maîtrise</button>
+  </div>
+</div>
+
+<div class="toast-stack" id="toastStack"></div>
+<div class="signature">By Quentin Delisle</div>
+
+<script src="app.js"></script>
+</body>
+</html>

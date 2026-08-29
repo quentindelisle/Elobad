@@ -1,0 +1,44 @@
+ELOBAD — Application de tournoi EPS (Badminton / Tennis de table)
+By Quentin Delisle — N'EPS Numérique
+====================================================================
+
+CONTENU DU DOSSIER
+- index.html, style.css, app.js  → l'application
+- manifest.json, sw.js           → fichiers PWA (installation écran d'accueil, mode hors-ligne)
+- logo.png, icons/                → ton logo ELOBAD en icônes d'application
+
+INSTALLATION (recommandé : ton NAS Synology, comme HarmoNantes / UNSS 44)
+1. Dépose l'intégralité du dossier "elobad" sur ton NAS (ou tout serveur web/InfinityFree).
+2. Ouvre l'URL depuis la tablette (Chrome ou Safari).
+3. Menu du navigateur → "Ajouter à l'écran d'accueil" : l'appli s'installe en plein écran,
+   paysage, avec ton icône ELOBAD. Le Service Worker (sw.js) la rend utilisable hors connexion
+   une fois la première visite effectuée.
+   NB : ouvrir index.html en double-clic (file://) fonctionne pour tester, mais le mode hors-ligne
+   (sw.js) ne s'active que servi par un vrai serveur (http/https).
+
+PRISE EN MAIN RAPIDE
+1. Onglet "Classes" → crée une classe (import CSV colonne A "NOM Prénom", ou saisie manuelle).
+   Tous les élèves démarrent à 100 ELO.
+2. Onglet "Joueurs" → l'élève touche sa tuile (Prénom + initiale, conforme RGPD), consulte ses
+   stats, puis choisit son adversaire.
+3. Écran de match → roue crantée pour entrer le score de chaque set (glisser pour tourner, ou
+   boutons +/-), "Valider le set", puis "Terminer le match" une fois la condition de victoire
+   atteinte. Le bouton ⚙️ permet d'ajuster les paramètres du match en cours (sport, sets,
+   score sec/2 pts d'écart, arbitre, séance...).
+4. Onglet "Classement" → classement ELO en direct, export Excel (bouton en haut à droite,
+   connexion internet nécessaire pour ce seul export).
+5. Onglet "Admin" (code par défaut 0000, modifiable) →
+   - Classe & élèves : gestion de la classe, remise à zéro des ELO
+   - Format du match : réglages par défaut (sport, sets, points, arbitre obligatoire...)
+   - Réglages ELO : mode fixe ou variable (barème selon écart de classement), bonus
+     "gagner/perdre avec la manière", bonus du leader (3 victoires consécutives en 1er)
+   - Maîtrises : créer/modifier tes maîtrises (arbitrage, technique...) et les attribuer
+   - Historique & suppression : supprimer un match ou une maîtrise (les points ELO sont annulés)
+   - Sauvegarde / Import : export JSON complet, réimport, export Excel
+
+DONNÉES
+Tout est stocké localement sur la tablette (localStorage du navigateur). Pense à faire un export
+JSON régulièrement (Admin → Sauvegarde) pour ne rien perdre si tu changes de tablette ou vides
+le cache du navigateur.
+
+By Quentin Delisle
