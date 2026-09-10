@@ -215,33 +215,38 @@ label.field-label{font-size:11.5px; font-weight:700; color:var(--ink-soft); text
 
 /* ---------- Player tiles (classement — écran principal) ---------- */
 .tiles-toolbar{display:flex; align-items:center; gap:12px; margin-bottom:16px; flex-wrap:wrap;}
-.tiles-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:8px;}
+.tiles-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(210px,1fr)); gap:14px;}
 .tile{
-  background:var(--navy-panel); border-radius:12px; padding:8px 10px; border:1px solid var(--line);
+  background:var(--navy-panel); border-radius:14px; padding:14px 16px; border:1px solid var(--line);
   cursor:pointer; transition:.15s; text-align:left; position:relative; box-shadow:var(--shadow-sm); overflow:hidden;
 }
-.tile::before{content:''; position:absolute; top:0; left:0; right:0; height:2px; background:var(--blue); opacity:.5;}
+.tile::before{content:''; position:absolute; top:0; left:0; right:0; height:3px; background:var(--blue); opacity:.5;}
 .tile:hover{transform:translateY(-2px); border-color:var(--pink); box-shadow:0 8px 20px var(--pink-glow);}
 .tile:has(.rank.top1)::before{background:var(--amber); opacity:1; box-shadow:0 0 10px var(--amber);}
-.tile-top{display:flex; align-items:center; gap:7px;}
-.tile .rank{flex-shrink:0; font-family:var(--font-display); font-size:11px; font-weight:800; color:var(--ink-faint); width:20px;}
+.tile-top{display:flex; align-items:center; gap:10px;}
+.tile .rank{flex-shrink:0; font-family:var(--font-display); font-size:14px; font-weight:800; color:var(--ink-faint); width:26px;}
 .tile .rank.top1{color:var(--amber); text-shadow:0 0 8px rgba(255,176,32,.6);}
 .tile .rank.top1::before{content:'👑';}
 .tile .rank.top2{color:var(--silver);}
 .tile .rank.top3{color:var(--bronze);}
 .tile .avatar{
-  width:28px;height:28px;border-radius:50%; flex-shrink:0; display:flex; align-items:center; justify-content:center;
-  font-family:var(--font-display); font-weight:800; font-size:11px; color:#fff; box-shadow:0 0 0 2px var(--navy-panel), 0 0 0 3px currentColor;
+  width:42px;height:42px;border-radius:50%; flex-shrink:0; display:flex; align-items:center; justify-content:center;
+  font-family:var(--font-display); font-weight:800; font-size:15px; color:#fff; box-shadow:0 0 0 2px var(--navy-panel), 0 0 0 3px currentColor;
 }
 .tile .tile-id{min-width:0; flex:1;}
-.tile .name{font-weight:700; font-size:11.5px; color:var(--ink); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
-.tile .elo{font-size:9.5px; color:var(--ink-soft); font-weight:600;}
-.tile .elo b{color:var(--pink); font-family:var(--font-display); font-size:13px; font-weight:800; font-variant-numeric:tabular-nums;}
-.tile .tile-stats-row{font-size:9px; color:var(--ink-faint); font-weight:600; margin-top:5px; padding-top:5px; border-top:1px dashed var(--line);}
-.tile .tile-last{display:block; font-size:8.5px; font-weight:700; margin-top:3px; line-height:1.25; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+.tile .name{font-weight:700; font-size:15px; color:var(--ink); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+.tile .elo{font-size:12px; color:var(--ink-soft); font-weight:600;}
+.tile .elo b{color:var(--pink); font-family:var(--font-display); font-size:17px; font-weight:800; font-variant-numeric:tabular-nums;}
+.tile .tile-stats-row{font-size:11.5px; color:var(--ink-faint); font-weight:600; margin-top:8px; padding-top:8px; border-top:1px dashed var(--line);}
+.tile .tile-last{display:flex; align-items:center; gap:6px; font-size:11px; font-weight:700; margin-top:5px; line-height:1.3; white-space:nowrap; overflow:hidden;}
 .tile .tile-last.win{color:var(--lime);}
 .tile .tile-last.lose{color:var(--danger);}
 .tile .tile-last.empty{color:var(--ink-faint); font-weight:500;}
+.tile-last-del{
+  margin-left:auto; flex-shrink:0; border:none; background:transparent; color:var(--ink-faint);
+  font-size:12px; line-height:1; padding:3px 4px; border-radius:6px; cursor:pointer; opacity:.7;
+}
+.tile-last-del:hover{opacity:1; color:var(--danger); background:rgba(255,90,90,.12);}
 
 /* ---------- Player profile modal ---------- */
 .profile-head{display:flex; align-items:center; gap:14px; margin-bottom:16px;}
@@ -272,19 +277,19 @@ label.field-label{font-size:11.5px; font-weight:700; color:var(--ink-soft); text
 .set-pill{background:var(--navy-1); border:1px solid var(--line); border-radius:10px; padding:6px 12px; font-size:12px; font-weight:700; color:var(--ink-soft);}
 .set-pill.done{background:var(--pink); border-color:var(--pink); color:#fff;}
 
-.dials-row{display:flex; align-items:flex-start; justify-content:center; gap:44px; margin:18px 0 10px;}
+.dials-row{display:flex; align-items:flex-start; justify-content:center; gap:56px; margin:18px 0 10px; flex-wrap:wrap;}
 .dial-col{display:flex; flex-direction:column; align-items:center; gap:10px;}
 .dial-col .who{font-weight:700; font-size:13px; color:var(--ink-soft);}
-.dial-wrap{position:relative; width:180px; height:180px; touch-action:none;}
+.dial-wrap{position:relative; width:270px; height:270px; touch-action:none;}
 .dial-wrap svg{width:100%;height:100%; display:block;}
 .dial-value{
   position:absolute; inset:0; display:flex; align-items:center; justify-content:center; flex-direction:column;
   pointer-events:none;
 }
-.dial-value .num{font-family:var(--font-display); font-weight:800; font-size:48px; color:var(--ink); font-variant-numeric:tabular-nums;}
-.dial-value .tgt{font-size:10.5px; color:var(--ink-faint); font-weight:700;}
+.dial-value .num{font-family:var(--font-display); font-weight:800; font-size:72px; color:var(--ink); font-variant-numeric:tabular-nums;}
+.dial-value .tgt{font-size:15.5px; color:var(--ink-faint); font-weight:700;}
 .dial-btns{display:flex; gap:8px;}
-.dial-btns button{width:36px;height:36px;border-radius:10px; border:1px solid var(--line); background:var(--navy-1); color:var(--ink); font-weight:800; font-size:16px;}
+.dial-btns button{width:54px;height:54px;border-radius:14px; border:1px solid var(--line); background:var(--navy-1); color:var(--ink); font-weight:800; font-size:24px;}
 .dial-btns button:hover{background:var(--navy-panel-2); border-color:var(--pink);}
 
 .match-settings-strip{display:flex; gap:8px; flex-wrap:wrap; margin-bottom:14px;}
@@ -370,8 +375,9 @@ label.field-label{font-size:11.5px; font-weight:700; color:var(--ink-soft); text
 
 @media (max-width:900px){
   .stat-grid{grid-template-columns:repeat(2,1fr);}
-  .dials-row{gap:20px;}
-  .dial-wrap{width:140px;height:140px;}
+  .dials-row{gap:28px;}
+  .dial-wrap{width:210px;height:210px;}
+  .dial-value .num{font-size:56px;}
 }
 @media (max-width:760px){
   .topbar{gap:8px; padding:0 10px;}

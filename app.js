@@ -156,13 +156,21 @@ function avatarInitials(s){
 }
 
 /* ---------------------------------------------------------
-   4. CSV PARSING — Colonne A : "NOM Prénom"
+   4. IMPORT DE CLASSE — formats souples
+   - Une seule colonne : "NOM Prénom" (comme avant)
+   - Deux colonnes (ou plus) : Colonne A = Nom, Colonne B = Prénom
+     (ou repérées par leurs en-têtes "Nom"/"Prénom" si présentes,
+     quel que soit leur ordre)
+   - Détection automatique du séparateur (; , ou tabulation)
 --------------------------------------------------------- */
+function stripAccents(str){
+  return String(str==null?'':str).normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+}
 function parseNameField(rawField){
-  let field = String(rawField==null?'':rawField).split(/[;,\t]/)[0].trim();
+  let field = String(rawField==null?'':rawField).trim();
   field = field.replace(/^"+|"+$/g,'').trim();
   if(!field) return null;
-  if(/^(nom|name|eleves?|élèves?|classe)/i.test(field) && field.split(' ').length<=2) return null; // skip header-ish
+  if(/^(nom|name|eleves?|classe)/i.test(stripAccents(field)) && field.split(' ').length<=2) return null; // skip header-ish
   const tokens = field.split(/\s+/).filter(Boolean);
   if(tokens.length===1) return {nom:tokens[0], prenom:''};
   let i=0;
@@ -173,30 +181,82 @@ function parseNameField(rawField){
   const prenom = tokens.slice(i).join(' ') || tokens[tokens.length-1];
   return {nom: capitalize(nom), prenom: capitalize(prenom)};
 }
-function parseCsvNames(text){
-  const lines = text.split(/\r?\n/).map(l=>l.trim()).filter(Boolean);
-  const rows = [];
-  for(const line of lines){
-    const r = parseNameField(line);
-    if(r) rows.push(r);
-  }
-  return rows;
+function looksLikeHeaderCell(c){
+  return /^(nom|name|last ?name|pr[ée]nom|first ?name|classe|eleves?|eleve|sexe|genre|date de naissance|nee?\(?e?\)?)$/i.test(stripAccents(String(c==null?'':c).trim()));
 }
-function parseNameArray(values){
-  const rows = [];
-  for(const v of values){
-    const r = parseNameField(v);
-    if(r) rows.push(r);
+function isHeaderRow(cells){
+  return cells.some(looksLikeHeaderCell);
+}
+function findColIndex(header, regex){
+  for(let i=0;i<header.length;i++){ if(regex.test(stripAccents(String(header[i]==null?'':header[i]).trim()))) return i; }
+  return -1;
+}
+/* Transforme un tableau 2D brut (lignes x colonnes, quelle que soit la source :
+   CSV découpé ou feuille Excel) en liste {nom, prenom}. Tolère les colonnes en
+   trop (classe, sexe...), les lignes vides et l'ordre des colonnes si un en-tête
+   est présent. */
+function parseStudentRows2D(rows2d){
+  const rows = (rows2d||[])
+    .map(r=> (r||[]).map(c=> c==null ? '' : String(c).trim()))
+    .filter(r=> r.some(c=> c!==''));
+  if(!rows.length) return [];
+  let nomIdx=0, prenomIdx=1, start=0;
+  if(isHeaderRow(rows[0])){
+    start=1;
+    const nIdx = findColIndex(rows[0], /^(nom|name|last ?name)/i);
+    const pIdx = findColIndex(rows[0], /^(prenom|first ?name)/i);
+    if(nIdx>=0) nomIdx=nIdx;
+    if(pIdx>=0) prenomIdx=pIdx;
   }
-  return rows;
+  const out = [];
+  for(let i=start;i<rows.length;i++){
+    const r = rows[i];
+    const nomCell = r[nomIdx]!==undefined ? r[nomIdx] : '';
+    const prenomCell = r[prenomIdx]!==undefined ? r[prenomIdx] : '';
+    if(nomCell && prenomCell && nomIdx!==prenomIdx){
+      out.push({nom:capitalize(nomCell), prenom:capitalize(prenomCell)});
+    } else if(nomCell){
+      // repli : une seule colonne renseignée -> format combiné "NOM Prénom"
+      const parsed = parseNameField(nomCell);
+      if(parsed) out.push(parsed);
+    } else if(prenomCell){
+      const parsed = parseNameField(prenomCell);
+      if(parsed) out.push(parsed);
+    }
+  }
+  return out;
+}
+function detectDelimiter(line){
+  const counts = {';':(line.match(/;/g)||[]).length, ',':(line.match(/,/g)||[]).length, '\t':(line.match(/\t/g)||[]).length};
+  let best=null, bestN=0;
+  Object.keys(counts).forEach(d=>{ if(counts[d]>bestN){ bestN=counts[d]; best=d; } });
+  return best; // null => pas de séparateur détecté, colonne unique
+}
+function splitCsvLine(line, delim){
+  if(!delim) return [line];
+  const out=[]; let cur=''; let inQ=false;
+  for(let i=0;i<line.length;i++){
+    const ch=line[i];
+    if(ch==='"'){ inQ=!inQ; continue; }
+    if(ch===delim && !inQ){ out.push(cur); cur=''; continue; }
+    cur+=ch;
+  }
+  out.push(cur);
+  return out;
+}
+function parseCsvNames(text){
+  const lines = String(text||'').split(/\r?\n/).filter(l=>l.trim()!=='');
+  if(!lines.length) return [];
+  const delim = detectDelimiter(lines[0]);
+  const rows2d = lines.map(l=> splitCsvLine(l, delim));
+  return parseStudentRows2D(rows2d);
 }
 async function parseXlsxNames(arrayBuffer){
   await ensureSheetJs();
   const wb = XLSX.read(arrayBuffer, {type:'array'});
   const sheet = wb.Sheets[wb.SheetNames[0]];
   const rows2d = XLSX.utils.sheet_to_json(sheet, {header:1, raw:false, defval:''});
-  const colA = rows2d.map(r=> r[0]).filter(v=> v!==undefined && v!==null && String(v).trim()!=='');
-  return parseNameArray(colA);
+  return parseStudentRows2D(rows2d);
 }
 function capitalize(str){
   return str.split(/\s+/).map(w=> w.split('-').map(p=> p ? p.charAt(0).toUpperCase()+p.slice(1).toLowerCase() : p).join('-')).join(' ');
@@ -983,7 +1043,8 @@ function renderRanking(){
       const oppId = lm.playerAId===s.id ? lm.playerBId : lm.playerAId;
       const opp = cls.students.find(x=>x.id===oppId);
       const delta = won ? lm.eloDeltaWinner : lm.eloDeltaLoser;
-      lastLine = `<span class="tile-last ${won?'win':'lose'}">${won?'✔ V':'✘ D'} vs ${escapeHtml(opp?displayName(opp):'?')} · ${delta>=0?'+':''}${delta} ELO · ${timeAgo(lm.date)}</span>`;
+      lastLine = `<span class="tile-last ${won?'win':'lose'}">${won?'✔ V':'✘ D'} vs ${escapeHtml(opp?displayName(opp):'?')} · ${delta>=0?'+':''}${delta} ELO · ${timeAgo(lm.date)}
+        <button type="button" class="tile-last-del" data-del-last-match="${lm.id}" title="Supprimer ce résultat (pour les deux joueurs)">🗑</button></span>`;
     }
     return `<div class="tile" data-id="${s.id}">
       <div class="tile-top">
@@ -999,6 +1060,15 @@ function renderRanking(){
     </div>`;
   }).join('');
   grid.querySelectorAll('.tile').forEach(t=> t.addEventListener('click', ()=> openProfile(t.dataset.id)));
+  grid.querySelectorAll('[data-del-last-match]').forEach(btn=>{
+    btn.addEventListener('click', (e)=>{
+      e.stopPropagation();
+      if(!confirm('Supprimer ce résultat ? Il sera retiré pour les deux joueurs et les ELO seront recalculés.')) return;
+      deleteMatchNoConfirm(btn.dataset.delLastMatch);
+      toast('Résultat supprimé pour les deux joueurs','ok');
+      renderRanking();
+    });
+  });
 }
 
 /* ---------------------------------------------------------
@@ -1045,6 +1115,29 @@ function renderAdminClassePanel(){
   }));
 }
 
+function openDeleteClassModal(){
+  const cls = activeClass(); if(!cls) return;
+  document.getElementById('delClassName').textContent = cls.name;
+  const input = document.getElementById('delClassConfirmInput');
+  input.value='';
+  document.getElementById('btnConfirmDeleteClass').disabled = true;
+  document.getElementById('modalDeleteClass').classList.remove('hidden');
+  setTimeout(()=>input.focus(), 30);
+}
+function confirmDeleteClass(){
+  const cls = activeClass(); if(!cls) return;
+  const input = document.getElementById('delClassConfirmInput');
+  if(input.value.trim().toLowerCase() !== cls.name.trim().toLowerCase()) return;
+  const name = cls.name;
+  delete DB.classes[cls.id];
+  DB.matches = DB.matches.filter(m=>m.classId!==cls.id);
+  DB.masteryAwards = DB.masteryAwards.filter(a=>a.classId!==cls.id);
+  DB.activeClassId = Object.keys(DB.classes)[0]||null;
+  saveDB();
+  document.getElementById('modalDeleteClass').classList.add('hidden');
+  toast('Classe « '+name+' » supprimée','ok');
+  goView('home');
+}
 function ptsBoxesToShow(mode, target){
   const n = mode==='total' ? target : Math.max(1, 2*target-1); // best-of-N peut aller jusqu'à 2N-1 sets
   return Math.min(5, Math.max(1, n));
@@ -1182,8 +1275,7 @@ function renderAdminHistoryPanel(){
 }
 function sportEmoji(sport){ return {tennis_de_table:'🏓',badminton:'🏸',autre:'🎯'}[sport]||'🎯'; }
 
-function deleteMatch(matchId){
-  if(!confirm('Supprimer ce match ? Les points ELO seront annulés.')) return;
+function deleteMatchNoConfirm(matchId){
   const cls = activeClass();
   const idx = DB.matches.findIndex(m=>m.id===matchId); if(idx<0) return;
   const m = DB.matches[idx];
@@ -1195,7 +1287,12 @@ function deleteMatch(matchId){
   if(winner){ winner.elo -= m.eloDeltaWinner; winner.mj-=1; winner.v-=1; }
   if(loser){ loser.elo -= m.eloDeltaLoser; loser.mj-=1; loser.d-=1; }
   DB.matches.splice(idx,1);
-  saveDB(); renderAdminHistoryPanel(); renderAdminClassePanel();
+  saveDB();
+}
+function deleteMatch(matchId){
+  if(!confirm('Supprimer ce match ? Les points ELO seront annulés.')) return;
+  deleteMatchNoConfirm(matchId);
+  renderAdminHistoryPanel(); renderAdminClassePanel();
   toast('Match supprimé et ELO annulé','ok');
 }
 function deleteAward(awardId){
@@ -1369,15 +1466,17 @@ function wireEvents(){
     cls.settings.adminPassword = val;
     saveDB(); toast('Code administrateur changé','ok');
   });
-  document.getElementById('btnDeleteClass').addEventListener('click', ()=>{
+  document.getElementById('btnDeleteClass').addEventListener('click', openDeleteClassModal);
+  document.getElementById('btnCancelDeleteClass').addEventListener('click', ()=>document.getElementById('modalDeleteClass').classList.add('hidden'));
+  document.getElementById('delClassConfirmInput').addEventListener('input', (e)=>{
     const cls = activeClass();
-    if(!confirm('Supprimer définitivement la classe « '+cls.name+' » et toutes ses données ?')) return;
-    delete DB.classes[cls.id];
-    DB.matches = DB.matches.filter(m=>m.classId!==cls.id);
-    DB.masteryAwards = DB.masteryAwards.filter(a=>a.classId!==cls.id);
-    DB.activeClassId = Object.keys(DB.classes)[0]||null;
-    saveDB(); toast('Classe supprimée','ok'); goView('home');
+    const ok = !!cls && e.target.value.trim().toLowerCase() === cls.name.trim().toLowerCase();
+    document.getElementById('btnConfirmDeleteClass').disabled = !ok;
   });
+  document.getElementById('delClassConfirmInput').addEventListener('keydown', (e)=>{
+    if(e.key==='Enter' && !document.getElementById('btnConfirmDeleteClass').disabled) confirmDeleteClass();
+  });
+  document.getElementById('btnConfirmDeleteClass').addEventListener('click', confirmDeleteClass);
   document.getElementById('btnAddStudentManual').addEventListener('click', ()=>{
     const prenom = prompt('Prénom'); if(!prenom) return;
     const nom = prompt('Nom')||'';

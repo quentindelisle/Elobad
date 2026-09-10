@@ -322,7 +322,7 @@
       <button class="btn secondary small" id="btnAddManualRow">+ Ajouter un élève</button>
     </div>
     <div id="csvImportZone" class="hidden">
-      <div class="csv-drop" id="csvDropZone">📄 Clique pour choisir le fichier de ta classe (CSV, XLS ou XLSX)<br><span style="font-size:11px;">Colonne A : NOM Prénom</span></div>
+      <div class="csv-drop" id="csvDropZone">📄 Clique pour choisir le fichier de ta classe (CSV, XLS ou XLSX)<br><span style="font-size:11px;">2 colonnes : Nom (col. A) / Prénom (col. B) — ou 1 seule colonne « NOM Prénom »</span></div>
       <input type="file" id="csvFileInput" accept=".csv,.txt,.xls,.xlsx" class="hidden">
       <div class="import-preview hidden" id="csvPreview"></div>
     </div>
@@ -330,6 +330,21 @@
     <div class="row" style="margin-top:18px; gap:10px; justify-content:flex-end;">
       <button class="btn secondary" id="btnCancelNewClass">Annuler</button>
       <button class="btn pink" id="btnCreateClass">Créer la classe</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop hidden" id="modalDeleteClass">
+  <div class="modal" style="max-width:440px;">
+    <h3>🗑 Supprimer la classe</h3>
+    <p style="font-size:13px;color:var(--ink-soft);margin:8px 0 14px;">
+      Cette action est <b>définitive</b> : tous les élèves, matchs et maîtrises de la classe
+      « <b id="delClassName"></b> » seront supprimés. Pour confirmer, retape le nom exact de la classe ci-dessous.
+    </p>
+    <div class="field"><input class="input" id="delClassConfirmInput" placeholder="Nom de la classe" autocomplete="off"></div>
+    <div class="row" style="margin-top:8px; gap:10px; justify-content:flex-end;">
+      <button class="btn secondary" id="btnCancelDeleteClass">Annuler</button>
+      <button class="btn danger" id="btnConfirmDeleteClass" disabled>🗑 Supprimer définitivement</button>
     </div>
   </div>
 </div>
