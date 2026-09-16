@@ -460,11 +460,42 @@ function openProfile(studentId){
     <div class="stat-box"><div class="v">${s.v}</div><div class="l">Victoires</div></div>
     <div class="stat-box"><div class="v">${s.d}</div><div class="l">Défaites</div></div>
     <div class="stat-box"><div class="v">${pct}%</div><div class="l">% Victoires</div></div>`;
+  // 5 derniers matchs
+  const studentMatches = DB.matches.filter(m=> m.classId===cls.id && (m.playerAId===s.id || m.playerBId===s.id))
+    .sort((a,b)=> b.date-a.date).slice(0,5);
+  const lastMatchesBody = studentMatches.length ? studentMatches.map(m=>{
+    const won = m.winnerId===s.id;
+    const oppId = m.playerAId===s.id ? m.playerBId : m.playerAId;
+    const opp = cls.students.find(x=>x.id===oppId);
+    const scoreTxt = m.sets && m.sets.length
+      ? m.sets.map(st=> (m.playerAId===s.id ? st[0]+'-'+st[1] : st[1]+'-'+st[0])).join(', ')
+      : (m.playerAId===s.id ? m.ptsA+'-'+m.ptsB : m.ptsB+'-'+m.ptsA);
+    const bonus = won ? m.eloDeltaWinner : m.eloDeltaLoser;
+    return `<div class="last-match-row ${won?'win':'lose'}">
+      <span class="lmr-opp">${escapeHtml(opp?displayName(opp):'?')}</span>
+      <span class="lmr-result">${won?'✔ Victoire':'✘ Défaite'}</span>
+      <span class="lmr-score">${escapeHtml(scoreTxt)}</span>
+      <span class="lmr-bonus ${bonus>=0?'pos':'neg'}">${bonus>=0?'+':''}${bonus} ELO</span>
+    </div>`;
+  }).join('') : '<p class="empty-note">Aucun match joué.</p>';
+  document.getElementById('profileLastMatches').innerHTML =
+    `<div class="profile-section-title">5 derniers matchs</div>${lastMatchesBody}`;
+
+  // Maîtrises validées
+  const studentAwards = DB.masteryAwards.filter(a=> a.classId===cls.id && a.studentId===s.id);
+  const countsByName = {};
+  studentAwards.forEach(a=>{ countsByName[a.masteryName] = (countsByName[a.masteryName]||0)+1; });
+  const masteryBody = studentAwards.length
+    ? `<div class="profile-mastery-list">${Object.entries(countsByName).map(([name,count])=>
+        `<span class="profile-mastery-chip">🏅 ${escapeHtml(name)}${count>1?' ×'+count:''}</span>`).join('')}</div>`
+    : '<p class="empty-note">Aucune maîtrise validée.</p>';
+  document.getElementById('profileMasteries').innerHTML =
+    `<div class="profile-section-title">Maîtrises validées (${studentAwards.length})</div>${masteryBody}`;
+
   const opList = document.getElementById('opponentList');
   const others = ranked.filter(x=>x.id!==s.id);
   opList.innerHTML = others.map(o=>`
     <div class="tile" data-id="${o.id}">
-      <div class="avatar" style="background:${avatarColor(o.id)};width:36px;height:36px;font-size:12px;">${avatarInitials(o)}</div>
       <div class="name" style="font-size:11.5px;">${escapeHtml(displayName(o))}</div>
       <div class="elo" style="font-size:10px;">ELO ${o.elo}</div>
     </div>`).join('') || '<p style="font-size:12px;color:var(--ink-soft);">Pas d’adversaire disponible.</p>';
@@ -515,11 +546,6 @@ function renderMatch(){
     <span class="chip">${p.tiebreak==='sets'?'Sets remportés':'Goal-average'}</span>
   `;
 
-  // referee select
-  const refSel = document.getElementById('matchRefereeSelect');
-  refSel.innerHTML = '<option value="">— Aucun —</option>' + cls.students.filter(s=>s.id!==m.playerAId && s.id!==m.playerBId)
-    .map(s=>`<option value="${s.id}">${escapeHtml(displayName(s))}</option>`).join('');
-  refSel.value = m.refereeId || '';
   document.getElementById('matchSessionInput').value = m.sessionLabel;
 
   const setsWonA = m.sets.filter(s=>s[0]>s[1]).length, setsWonB = m.sets.filter(s=>s[1]>s[0]).length;
@@ -564,19 +590,35 @@ function renderMatch(){
     <button class="btn secondary small" data-abandon="${B.id}">🚩 Abandon ${escapeHtml(displayName(B))}</button>`;
 
   // masteries — attribution directe pendant la saisie du score
+  // (l'arbitre est choisi ici même, via la maîtrise "Arbitrage", plutôt que dans un champ séparé)
   const referee = m.refereeId ? cls.students.find(x=>x.id===m.refereeId) : null;
+  const potentialReferees = cls.students.filter(st=> st.id!==m.playerAId && st.id!==m.playerBId);
   const masteries = (cls.settings.masteries || []).filter(mst=> mst.active && (mst.sport==='general' || mst.sport===p.sport));
   document.getElementById('matchMasteriesPanel').innerHTML = masteries.length ? masteries.map(mst=>{
+    if(mst.scope==='arbitre'){
+      const refPicker = `<select class="input input-compact" style="width:auto;min-width:170px;flex:0 0 auto;" data-referee-picker>
+        <option value="">— Choisir l’arbitre —</option>
+        ${potentialReferees.map(st=>`<option value="${st.id}" ${st.id===m.refereeId?'selected':''}>${escapeHtml(displayName(st))}</option>`).join('')}
+      </select>`;
+      let chip = '';
+      if(referee){
+        const key = referee.id+':'+mst.id;
+        const given = !!m.givenAwards[key];
+        chip = `<button type="button" class="mastery-chip ${given?'given':''}" data-mastery-chip data-student-id="${referee.id}" data-mastery-id="${mst.id}">${given?'✓ ':''}${escapeHtml(displayName(referee))} (arbitre)</button>`;
+      }
+      return `<div class="mastery-award-block">
+        <div class="mab-text"><span class="mab-title">🏅 ${escapeHtml(mst.name)}</span> ${scopeTag(mst.scope)}<span class="mab-desc">+${mst.elo} ELO · ${escapeHtml(mst.description||'')}</span></div>
+        <div class="mastery-chips" style="align-items:center;">${refPicker}${chip}</div>
+      </div>`;
+    }
     let eligible;
-    if(mst.scope==='arbitre') eligible = referee ? [referee] : [];
-    else if(mst.scope==='joueurs') eligible = [A,B];
+    if(mst.scope==='joueurs') eligible = [A,B];
     else eligible = referee ? [A,B,referee] : [A,B]; // 'tous'
-    const needsReferee = mst.scope==='arbitre' && !referee;
-    const chips = eligible.length ? eligible.map(part=>{
+    const chips = eligible.map(part=>{
       const key = part.id+':'+mst.id;
       const given = !!m.givenAwards[key];
       return `<button type="button" class="mastery-chip ${given?'given':''}" data-mastery-chip data-student-id="${part.id}" data-mastery-id="${mst.id}">${given?'✓ ':''}${escapeHtml(displayName(part))}${part.id===m.refereeId?' (arbitre)':''}</button>`;
-    }).join('') : (needsReferee ? `<span class="mastery-note">Sélectionne un arbitre pour attribuer cette maîtrise.</span>` : '');
+    }).join('');
     return `<div class="mastery-award-block">
       <div class="mab-text"><span class="mab-title">🏅 ${escapeHtml(mst.name)}</span> ${scopeTag(mst.scope)}<span class="mab-desc">+${mst.elo} ELO · ${escapeHtml(mst.description||'')}</span></div>
       <div class="mastery-chips">${chips}</div>
@@ -1043,13 +1085,11 @@ function renderRanking(){
       const oppId = lm.playerAId===s.id ? lm.playerBId : lm.playerAId;
       const opp = cls.students.find(x=>x.id===oppId);
       const delta = won ? lm.eloDeltaWinner : lm.eloDeltaLoser;
-      lastLine = `<span class="tile-last ${won?'win':'lose'}">${won?'✔ V':'✘ D'} vs ${escapeHtml(opp?displayName(opp):'?')} · ${delta>=0?'+':''}${delta} ELO · ${timeAgo(lm.date)}
-        <button type="button" class="tile-last-del" data-del-last-match="${lm.id}" title="Supprimer ce résultat (pour les deux joueurs)">🗑</button></span>`;
+      lastLine = `<span class="tile-last ${won?'win':'lose'}">${won?'✔ V':'✘ D'} vs ${escapeHtml(opp?displayName(opp):'?')} · ${delta>=0?'+':''}${delta} ELO · ${timeAgo(lm.date)}</span>`;
     }
     return `<div class="tile" data-id="${s.id}">
       <div class="tile-top">
         <span class="rank ${rank===1?'top1':rank===2?'top2':rank===3?'top3':''}">#${rank}</span>
-        <div class="avatar" style="background:${avatarColor(s.id)}">${avatarInitials(s)}</div>
         <div class="tile-id">
           <div class="name">${escapeHtml(displayName(s))}</div>
           <div class="elo">ELO <b>${s.elo}</b></div>
@@ -1060,15 +1100,6 @@ function renderRanking(){
     </div>`;
   }).join('');
   grid.querySelectorAll('.tile').forEach(t=> t.addEventListener('click', ()=> openProfile(t.dataset.id)));
-  grid.querySelectorAll('[data-del-last-match]').forEach(btn=>{
-    btn.addEventListener('click', (e)=>{
-      e.stopPropagation();
-      if(!confirm('Supprimer ce résultat ? Il sera retiré pour les deux joueurs et les ELO seront recalculés.')) return;
-      deleteMatchNoConfirm(btn.dataset.delLastMatch);
-      toast('Résultat supprimé pour les deux joueurs','ok');
-      renderRanking();
-    });
-  });
 }
 
 /* ---------------------------------------------------------
@@ -1416,9 +1447,10 @@ function wireEvents(){
   document.getElementById('closeProfile').addEventListener('click', ()=>document.getElementById('modalProfile').classList.add('hidden'));
 
   document.getElementById('btnBackToTiles').addEventListener('click', ()=>{ STATE.currentMatch=null; goView('ranking'); });
-  document.getElementById('matchRefereeSelect').addEventListener('change', (e)=>{
+  document.getElementById('matchMasteriesPanel').addEventListener('change', (e)=>{
+    const sel = e.target.closest('[data-referee-picker]'); if(!sel) return;
     const m = STATE.currentMatch; if(!m) return;
-    m.refereeId = e.target.value || null;
+    m.refereeId = sel.value || null;
     renderMatch();
   });
   document.getElementById('matchSessionInput').addEventListener('change', (e)=>{
