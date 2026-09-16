@@ -64,7 +64,6 @@ const MASTERY_CATALOG = [
 ];
 function defaultClassSettings(){
   return {
-    adminPassword:'0000',
     eloMode:'variable', // 'fixe' | 'variable'
     eloFixed:{win:5, loss:-3},
     eloVariable:{
@@ -82,7 +81,7 @@ function defaultClassSettings(){
 }
 
 function emptyDB(){
-  return { classes:{}, matches:[], masteryAwards:[], activeClassId:null };
+  return { classes:{}, matches:[], masteryAwards:[], activeClassId:null, adminPassword:'0000' };
 }
 
 /* ---------------------------------------------------------
@@ -104,6 +103,11 @@ function loadDB(){
     const parsed = JSON.parse(raw);
     const db = Object.assign(emptyDB(), parsed);
     Object.values(db.classes||{}).forEach(migrateClassSettings);
+    // Migration : mot de passe admin unique pour toutes les classes (auparavant un code par classe)
+    if(!parsed.adminPassword){
+      const firstClassPass = Object.values(db.classes||{}).map(c=>c.settings && c.settings.adminPassword).find(Boolean);
+      db.adminPassword = firstClassPass || '0000';
+    }
     return db;
   }catch(e){ console.warn('DB load error', e); return emptyDB(); }
 }
@@ -153,6 +157,40 @@ function avatarColor(studentId){
 }
 function avatarInitials(s){
   return (s.prenom||'?').charAt(0).toUpperCase() + (s.nom||'?').charAt(0).toUpperCase();
+}
+const CLASS_COLORS = ['#FF3E82','#3C87C9','#A6F400','#FFB020','#7A4FE0','#00C2A8','#FF6B4A','#2FA1FF','#E23FD6','#43D17A'];
+function classColor(classId){
+  let hash=0; for(const c of classId) hash = (hash*31 + c.charCodeAt(0))>>>0;
+  return CLASS_COLORS[hash % CLASS_COLORS.length];
+}
+/* ---- Échelle rouge (adversaire plus faible) / vert (adversaire plus fort) pour l'écart d'ELO ---- */
+function hexToRgb(hex){
+  hex = hex.replace('#','');
+  return {r:parseInt(hex.slice(0,2),16), g:parseInt(hex.slice(2,4),16), b:parseInt(hex.slice(4,6),16)};
+}
+function mixColor(hex1, hex2, t){
+  const c1=hexToRgb(hex1), c2=hexToRgb(hex2);
+  const r=Math.round(c1.r+(c2.r-c1.r)*t), g=Math.round(c1.g+(c2.g-c1.g)*t), b=Math.round(c1.b+(c2.b-c1.b)*t);
+  return `rgb(${r},${g},${b})`;
+}
+function textColorFor(rgbStr){
+  const m = /rgb\((\d+),\s*(\d+),\s*(\d+)\)/.exec(rgbStr);
+  if(!m) return '#111';
+  const [r,g,b] = [1,2,3].map(i=>+m[i]);
+  const lum = (0.299*r+0.587*g+0.114*b)/255;
+  return lum>0.62 ? '#101014' : '#fff';
+}
+function eloGapInfo(diff){
+  // diff = ELO de l'adversaire − ELO du joueur. > 0 : adversaire plus fort (vert). < 0 : plus faible (rouge).
+  const ad = Math.abs(diff);
+  let bg;
+  if(ad<=4){
+    bg = '#FFD93D'; // écart quasi nul -> jaune
+  } else {
+    const t = Math.min(1, (ad-4)/36); // pleine intensité vers ~40 points d'écart
+    bg = diff>0 ? mixColor('#D7F5A6','#3E8E0C', t) : mixColor('#FFD2C7','#C81C10', t);
+  }
+  return { label:(diff>=0?'+':'')+diff+' ELO', bg, color:textColorFor(bg) };
 }
 
 /* ---------------------------------------------------------
@@ -308,12 +346,15 @@ function renderHome(){
   document.getElementById('homeYear').textContent = new Date().getFullYear()+' / '+(new Date().getFullYear()+1);
   const grid = document.getElementById('classGrid');
   const classes = Object.values(DB.classes);
-  let html = classes.map(c=>`
-    <div class="class-card" data-class="${c.id}">
+  let html = classes.map(c=>{
+    const color = classColor(c.id);
+    return `
+    <div class="class-card" data-class="${c.id}" style="background:linear-gradient(160deg, rgba(5,12,34,.10) 0%, rgba(5,12,34,.58) 100%), ${color};">
       <div class="icon">${escapeHtml((c.name||'?').slice(0,2).toUpperCase())}</div>
       <h3>${escapeHtml(c.name)}</h3>
       <p>${c.students.length} élève${c.students.length>1?'s':''}</p>
-    </div>`).join('');
+    </div>`;
+  }).join('');
   html += `<div class="class-card add" id="btnOpenNewClass">
       <svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
       Nouvelle classe
@@ -481,24 +522,28 @@ function openProfile(studentId){
   document.getElementById('profileLastMatches').innerHTML =
     `<div class="profile-section-title">5 derniers matchs</div>${lastMatchesBody}`;
 
-  // Maîtrises validées
+  // Maîtrises validées — pour chaque maîtrise, le nombre exact de fois où elle a été validée
   const studentAwards = DB.masteryAwards.filter(a=> a.classId===cls.id && a.studentId===s.id);
   const countsByName = {};
   studentAwards.forEach(a=>{ countsByName[a.masteryName] = (countsByName[a.masteryName]||0)+1; });
   const masteryBody = studentAwards.length
     ? `<div class="profile-mastery-list">${Object.entries(countsByName).map(([name,count])=>
-        `<span class="profile-mastery-chip">🏅 ${escapeHtml(name)}${count>1?' ×'+count:''}</span>`).join('')}</div>`
+        `<span class="profile-mastery-chip">🏅 ${escapeHtml(name)} — validée ${count} fois</span>`).join('')}</div>`
     : '<p class="empty-note">Aucune maîtrise validée.</p>';
   document.getElementById('profileMasteries').innerHTML =
-    `<div class="profile-section-title">Maîtrises validées (${studentAwards.length})</div>${masteryBody}`;
+    `<div class="profile-section-title">Maîtrises validées — ${studentAwards.length} au total</div>${masteryBody}`;
 
   const opList = document.getElementById('opponentList');
   const others = ranked.filter(x=>x.id!==s.id);
-  opList.innerHTML = others.map(o=>`
-    <div class="tile" data-id="${o.id}">
-      <div class="name" style="font-size:11.5px;">${escapeHtml(displayName(o))}</div>
-      <div class="elo" style="font-size:10px;">ELO ${o.elo}</div>
-    </div>`).join('') || '<p style="font-size:12px;color:var(--ink-soft);">Pas d’adversaire disponible.</p>';
+  opList.innerHTML = others.map(o=>{
+    const diff = o.elo - s.elo;
+    const gap = eloGapInfo(diff);
+    return `<div class="tile" data-id="${o.id}">
+      <div class="name" style="font-size:12.5px;">${escapeHtml(displayName(o))}</div>
+      <div class="elo" style="font-size:10.5px;">ELO ${o.elo}</div>
+      <span class="opp-elo-gap" style="background:${gap.bg};color:${gap.color};">${gap.label}</span>
+    </div>`;
+  }).join('') || '<p style="font-size:12px;color:var(--ink-soft);">Pas d’adversaire disponible.</p>';
   opList.querySelectorAll('.tile').forEach(t=> t.addEventListener('click', ()=>{
     document.getElementById('modalProfile').classList.add('hidden');
     startMatch(s.id, t.dataset.id);
@@ -1064,12 +1109,32 @@ function scopeTag(scope){
 function scopeLabel(scope){
   return scope==='arbitre' ? 'Arbitre uniquement' : scope==='joueurs' ? 'Joueurs uniquement' : 'Tous (joueurs + arbitre)';
 }
+function rankBadgeHtml(rank){
+  if(rank===1) return '🥇';
+  if(rank===2) return '🥈';
+  if(rank===3) return '🥉';
+  return '#'+rank;
+}
+function renderMasteryTop3(cls){
+  const row = document.getElementById('masteryTop3Row');
+  const top = [...cls.students].filter(s=> s.masteryElo>0).sort((a,b)=> b.masteryElo-a.masteryElo).slice(0,3);
+  if(!top.length){ row.innerHTML=''; return; }
+  const medals = ['🥇','🥈','🥉'];
+  row.innerHTML = `<div class="mastery-top3-title">🏅 Top 3 Maîtrises — le plus d’ELO gagné hors match</div>
+    <div class="mastery-top3-cards">${top.map((s,i)=>`
+      <div class="mastery-top3-card">
+        <span class="mt3-medal">${medals[i]}</span>
+        <span class="mt3-name">${escapeHtml(displayName(s))}</span>
+        <span class="mt3-points">+${s.masteryElo} ELO</span>
+      </div>`).join('')}</div>`;
+}
 function renderRanking(){
   const cls = activeClass(); if(!cls) return;
   document.getElementById('rankingClassName').textContent = cls.name+' · '+cls.students.length+' élèves';
   const search = (document.getElementById('tileSearch').value||'').toLowerCase();
   const ranked = rankedStudents(cls);
   const grid = document.getElementById('tilesGrid');
+  renderMasteryTop3(cls);
   const filtered = ranked.filter(s=> displayName(s).toLowerCase().includes(search));
   if(!filtered.length){
     grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1;">Aucun élève trouvé.</div>`;
@@ -1087,9 +1152,10 @@ function renderRanking(){
       const delta = won ? lm.eloDeltaWinner : lm.eloDeltaLoser;
       lastLine = `<span class="tile-last ${won?'win':'lose'}">${won?'✔ V':'✘ D'} vs ${escapeHtml(opp?displayName(opp):'?')} · ${delta>=0?'+':''}${delta} ELO · ${timeAgo(lm.date)}</span>`;
     }
-    return `<div class="tile" data-id="${s.id}">
+    const podiumClass = rank===1?'rank-gold':rank===2?'rank-silver':rank===3?'rank-bronze':rank<=10?'rank-top10':'';
+    return `<div class="tile ${podiumClass}" data-id="${s.id}">
       <div class="tile-top">
-        <span class="rank ${rank===1?'top1':rank===2?'top2':rank===3?'top3':''}">#${rank}</span>
+        <span class="rank ${rank===1?'top1':rank===2?'top2':rank===3?'top3':rank<=10?'top10':''}">${rankBadgeHtml(rank)}</span>
         <div class="tile-id">
           <div class="name">${escapeHtml(displayName(s))}</div>
           <div class="elo">ELO <b>${s.elo}</b></div>
@@ -1124,7 +1190,7 @@ function renderAdmin(){
 function renderAdminClassePanel(){
   const cls = activeClass();
   document.getElementById('editClassName').value = cls.name;
-  document.getElementById('editAdminPass').value = cls.settings.adminPassword;
+  document.getElementById('editAdminPass').value = DB.adminPassword||'0000';
   document.getElementById('studentCountTag').textContent = cls.students.length;
   document.getElementById('studentAdminList').innerHTML = cls.students.map(s=>`
     <div class="mastery-item">
@@ -1492,11 +1558,10 @@ function wireEvents(){
     saveDB(); renderClassPill(); toast('Classe mise à jour','ok');
   });
   document.getElementById('btnSaveAdminPass').addEventListener('click', ()=>{
-    const cls = activeClass();
     const val = document.getElementById('editAdminPass').value.trim();
     if(!val){ toast('Indique un code','err'); return; }
-    cls.settings.adminPassword = val;
-    saveDB(); toast('Code administrateur changé','ok');
+    DB.adminPassword = val;
+    saveDB(); toast('Code administrateur changé pour toutes les classes','ok');
   });
   document.getElementById('btnDeleteClass').addEventListener('click', openDeleteClassModal);
   document.getElementById('btnCancelDeleteClass').addEventListener('click', ()=>document.getElementById('modalDeleteClass').classList.add('hidden'));
@@ -1613,7 +1678,7 @@ function wireEvents(){
 function tryAdminUnlock(){
   const cls = activeClass(); if(!cls){ toast('Choisis une classe','err'); return; }
   const val = document.getElementById('adminPassInput').value;
-  if(val === (cls.settings.adminPassword||'0000')){
+  if(val === (DB.adminPassword||'0000')){
     STATE.adminUnlocked = true;
     document.getElementById('adminPassInput').value='';
     renderAdmin();

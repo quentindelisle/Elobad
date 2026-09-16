@@ -59,6 +59,7 @@
         <input class="input" id="tileSearch" placeholder="🔍 Rechercher un élève..." style="max-width:220px; margin-left:auto;">
         <button class="btn secondary small" id="btnExportExcel">📊 Excel</button>
       </div>
+      <div class="mastery-top3-row" id="masteryTop3Row"></div>
       <div class="tiles-grid" id="tilesGrid"></div>
     </section>
 
@@ -129,8 +130,8 @@
           </div>
           <div class="card" style="margin-top:16px;">
             <div class="section-title"><h2>🔐 Sécurité</h2></div>
-            <p style="font-size:12px;color:var(--ink-soft);margin-bottom:10px;">Ce code protège l'accès à l'Administration pour cette classe. Il est redemandé à chaque fois que tu quittes cet écran.</p>
-            <div class="field" style="max-width:220px;"><label class="field-label">Code administrateur</label><input class="input" id="editAdminPass" maxlength="12" style="text-align:center;letter-spacing:3px;font-weight:800;"></div>
+            <p style="font-size:12px;color:var(--ink-soft);margin-bottom:10px;">Ce code unique protège l'accès à l'Administration pour <b>toutes les classes</b> de cet appareil. Il est redemandé à chaque fois que tu quittes cet écran.</p>
+            <div class="field" style="max-width:220px;"><label class="field-label">Code administrateur (toutes classes)</label><input class="input" id="editAdminPass" maxlength="12" style="text-align:center;letter-spacing:3px;font-weight:800;"></div>
             <button class="btn secondary small" id="btnSaveAdminPass">💾 Changer le code</button>
           </div>
           <div class="card" style="margin-top:16px;">
@@ -358,7 +359,8 @@
     <div class="stat-grid" id="profileStats"></div>
     <div class="profile-block" id="profileLastMatches"></div>
     <div class="profile-block" id="profileMasteries"></div>
-    <h4 style="margin-bottom:8px;font-size:14px;">Choisir un adversaire</h4>
+    <h4 style="margin-bottom:6px;font-size:14px;">Choisir un adversaire</h4>
+    <p class="opp-elo-gap-legend">Écart d'ELO : <span style="color:#C81C10;font-weight:800;">rouge</span> = adversaire plus faible, <span style="color:#FFD93D;font-weight:800;">jaune</span> = niveau proche, <span style="color:#3E8E0C;font-weight:800;">vert</span> = adversaire plus fort (plus la couleur est vive, plus l'écart est grand).</p>
     <div class="opponent-list" id="opponentList"></div>
   </div>
 </div>
