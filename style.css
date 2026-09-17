@@ -20,6 +20,8 @@
   --silver:      #C7D2E8;
   --bronze:      #E0995E;
   --danger:      #FF5A5A;
+  --violet:      #7A4FE0;
+  --violet-glow: rgba(122,79,224,.45);
   --ink:         #F3F6FF;
   --ink-soft:    #A9B7DD;
   --ink-faint:   #6C7BA6;
@@ -219,27 +221,28 @@ label.field-label{font-size:11.5px; font-weight:700; color:var(--ink-soft); text
 .mastery-top3-title{font-size:12px; font-weight:800; color:var(--ink-soft); text-transform:uppercase; letter-spacing:.4px; margin-bottom:8px;}
 .mastery-top3-cards{display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:10px;}
 .mastery-top3-card{
-  display:flex; align-items:center; gap:10px; background:var(--navy-panel); border:1px solid var(--line); border-radius:14px;
-  padding:10px 14px; box-shadow:var(--shadow-sm);
+  display:flex; align-items:center; gap:10px; border-radius:14px; padding:10px 14px;
+  background:linear-gradient(160deg, rgba(122,79,224,.28) 0%, var(--navy-panel) 70%);
+  border:1px solid var(--violet); box-shadow:0 0 0 1px var(--violet), 0 8px 20px var(--violet-glow);
 }
 .mt3-medal{font-size:24px; flex-shrink:0;}
 .mt3-name{flex:1; min-width:0; font-weight:700; font-size:13px; color:var(--ink); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
-.mt3-points{font-family:var(--font-display); font-weight:800; font-size:15px; color:var(--lime); text-shadow:0 0 8px var(--lime-glow); flex-shrink:0;}
-.tiles-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(210px,1fr)); gap:14px;}
+.mt3-points{font-family:var(--font-display); font-weight:800; font-size:15px; color:#C9A9FF; text-shadow:0 0 8px var(--violet-glow); flex-shrink:0;}
+.tiles-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(140px,1fr)); gap:12px;}
 .tile{
-  background:var(--navy-panel); border-radius:14px; padding:14px 16px; border:1px solid var(--line);
+  background:var(--navy-panel); border-radius:14px; padding:12px 13px; border:1px solid var(--line);
   cursor:pointer; transition:.15s; text-align:left; position:relative; box-shadow:var(--shadow-sm); overflow:hidden;
 }
 .tile::before{content:''; position:absolute; top:0; left:0; right:0; height:3px; background:var(--blue); opacity:.5;}
 .tile:hover{transform:translateY(-2px); border-color:var(--pink); box-shadow:0 8px 20px var(--pink-glow);}
-/* Podium : les 3 premiers ont une bordure et une lueur dédiées, le top 10 reste repérable au premier coup d’œil */
-.tile.rank-gold{border-color:var(--amber); box-shadow:0 0 0 1px var(--amber), 0 8px 22px rgba(255,176,32,.30);}
+/* Podium : les 3 premiers ont une bordure, une lueur et un fond dédiés ; le top 10 a son propre fond teinté pour rester repérable au premier coup d’œil */
+.tile.rank-gold{background:linear-gradient(160deg, rgba(255,176,32,.22) 0%, var(--navy-panel) 70%); border-color:var(--amber); box-shadow:0 0 0 1px var(--amber), 0 8px 22px rgba(255,176,32,.30);}
 .tile.rank-gold::before{background:var(--amber); opacity:1; box-shadow:0 0 10px var(--amber);}
-.tile.rank-silver{border-color:var(--silver); box-shadow:0 0 0 1px var(--silver), 0 8px 18px rgba(199,210,232,.20);}
+.tile.rank-silver{background:linear-gradient(160deg, rgba(199,210,232,.20) 0%, var(--navy-panel) 70%); border-color:var(--silver); box-shadow:0 0 0 1px var(--silver), 0 8px 18px rgba(199,210,232,.20);}
 .tile.rank-silver::before{background:var(--silver); opacity:1;}
-.tile.rank-bronze{border-color:var(--bronze); box-shadow:0 0 0 1px var(--bronze), 0 8px 18px rgba(224,153,94,.20);}
+.tile.rank-bronze{background:linear-gradient(160deg, rgba(224,153,94,.20) 0%, var(--navy-panel) 70%); border-color:var(--bronze); box-shadow:0 0 0 1px var(--bronze), 0 8px 18px rgba(224,153,94,.20);}
 .tile.rank-bronze::before{background:var(--bronze); opacity:1;}
-.tile.rank-top10{border-color:rgba(60,135,201,.55);}
+.tile.rank-top10{background:linear-gradient(160deg, rgba(60,135,201,.22) 0%, var(--navy-panel) 70%); border-color:rgba(60,135,201,.55);}
 .tile.rank-top10::before{background:var(--blue); opacity:.9;}
 .tile-top{display:flex; align-items:center; gap:10px;}
 .tile .rank{flex-shrink:0; font-family:var(--font-display); font-size:15px; font-weight:800; color:var(--ink-faint); width:30px; text-align:center;}
@@ -269,7 +272,13 @@ label.field-label{font-size:11.5px; font-weight:700; color:var(--ink-soft); text
 .stat-box{background:var(--navy-1); border:1px solid var(--line); border-radius:12px; padding:10px 8px; text-align:center;}
 .stat-box .v{font-family:var(--font-display); font-weight:800; font-size:22px; color:var(--ink); font-variant-numeric:tabular-nums;}
 .stat-box .l{font-size:10px; color:var(--ink-soft); font-weight:700; text-transform:uppercase; margin-top:2px; letter-spacing:.3px;}
-.opponent-list{display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:10px; max-height:46vh; overflow-y:auto; padding:2px;}
+.opponent-list{
+  display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:10px; max-height:46vh;
+  overflow-y:auto; padding:2px 12px 2px 2px; scrollbar-color:var(--pink) var(--navy-1);
+}
+.opponent-list::-webkit-scrollbar{width:11px;}
+.opponent-list::-webkit-scrollbar-track{background:var(--navy-1); border-radius:8px;}
+.opponent-list::-webkit-scrollbar-thumb{background:var(--pink); border-radius:8px; border:2px solid var(--navy-1);}
 .opponent-list .tile{padding:12px 10px; text-align:center; display:flex; flex-direction:column; align-items:center; gap:4px;}
 .opp-elo-gap{display:inline-block; margin-top:4px; padding:3px 10px; border-radius:999px; font-size:11px; font-weight:800; font-variant-numeric:tabular-nums;}
 
