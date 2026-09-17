@@ -1,5 +1,5 @@
 /* ELOBAD — Service Worker — By Quentin Delisle */
-const CACHE = 'elobad-cache-v2';
+const CACHE = 'elobad-cache-v3';
 const CORE_ASSETS = ['./index.html', './style.css', './app.js', './manifest.json'];
 const STATIC_ASSETS = [
   './', './logo.png', './logo-lmc-icon.png',
