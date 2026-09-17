@@ -1395,10 +1395,13 @@ function renderAdminHistoryPanel(){
     if(item._type==='match'){
       const A = cls.students.find(s=>s.id===item.playerAId), B = cls.students.find(s=>s.id===item.playerBId);
       const w = cls.students.find(s=>s.id===item.winnerId);
+      const setsScoreTxt = item.sets && item.sets.length ? item.sets.map(st=>st[0]+'-'+st[1]).join(', ') : `${item.ptsA}-${item.ptsB}`;
+      const dateObj = new Date(item.date);
       return `<div class="history-item">
         <div class="icon-box">${sportEmoji(item.sport)}</div>
         <div class="info"><b>${escapeHtml(A?displayName(A):'?')} vs ${escapeHtml(B?displayName(B):'?')}</b>
-        <div>${item.setsWonA}-${item.setsWonB} sets · vainqueur ${escapeHtml(w?displayName(w):'?')} · ${escapeHtml(item.sessionLabel)} · ${new Date(item.date).toLocaleDateString('fr-FR')}</div></div>
+        <div>Score : <b>${escapeHtml(setsScoreTxt)}</b> (${item.setsWonA}-${item.setsWonB} sets) · vainqueur ${escapeHtml(w?displayName(w):'?')}</div>
+        <div>${escapeHtml(item.sessionLabel)} · saisi le ${dateObj.toLocaleDateString('fr-FR')} à ${dateObj.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}</div></div>
         <button class="btn danger small" data-del-match="${item.id}">Supprimer</button>
       </div>`;
     } else {
