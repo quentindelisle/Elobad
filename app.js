@@ -94,6 +94,7 @@ let STATE = {
   adminUnlocked: false,
   adminPanel:'panel-classe',
   editingMatchParams:false,
+  adminHistoryFilter:null, // studentId sélectionné dans Admin > Historique, ou null = tous les élèves
 };
 
 function loadDB(){
@@ -320,7 +321,7 @@ function goView(view){
   if((view==='ranking'||view==='match') && !DB.activeClassId){
     toast('Choisis d’abord une classe', 'err'); view='home';
   }
-  if(view!=='admin' && STATE.adminUnlocked){ STATE.adminUnlocked = false; } // re-verrouillage systématique
+  if(view!=='admin' && STATE.adminUnlocked){ STATE.adminUnlocked = false; STATE.adminHistoryFilter = null; } // re-verrouillage systématique
   STATE.view = view;
   document.querySelectorAll('.view').forEach(v=>v.classList.add('hidden'));
   document.getElementById('view-'+view).classList.remove('hidden');
@@ -1342,9 +1343,52 @@ function renderAdminMasteriesPanel(){
 
 function renderAdminHistoryPanel(){
   const cls = activeClass();
-  const matches = DB.matches.filter(m=>m.classId===cls.id).map(m=>({...m, _type:'match'}));
-  const awards = DB.masteryAwards.filter(a=>a.classId===cls.id).map(a=>({...a, _type:'award'}));
-  const all = [...matches, ...awards].sort((a,b)=>b.date-a.date);
+  const filterId = STATE.adminHistoryFilter;
+
+  // ---- tuiles élèves : cliquer sur un élève filtre son historique complet ----
+  const tilesEl = document.getElementById('adminStudentTiles');
+  const rankedForTiles = rankedStudents(cls);
+  tilesEl.innerHTML = rankedForTiles.map(s=>`
+    <div class="tile admin-student-tile ${s.id===filterId?'selected':''}" data-student-tile="${s.id}">
+      <div class="name">${escapeHtml(displayName(s))}</div>
+      <div class="elo">ELO <b>${s.elo}</b></div>
+      <div class="tile-stats-row">${s.mj} MJ · ${s.v}V/${s.d}D</div>
+    </div>`).join('') || '<p style="font-size:12px;color:var(--ink-soft);">Aucun élève.</p>';
+  tilesEl.querySelectorAll('[data-student-tile]').forEach(t=> t.addEventListener('click', ()=>{
+    STATE.adminHistoryFilter = STATE.adminHistoryFilter===t.dataset.studentTile ? null : t.dataset.studentTile;
+    renderAdminHistoryPanel();
+  }));
+  document.getElementById('btnHistFilterAll').classList.toggle('active', !filterId);
+
+  // ---- résumé rapide de l'élève sélectionné (toutes ses stats, pas seulement les 5 derniers matchs) ----
+  const summaryEl = document.getElementById('histStudentSummary');
+  const tagEl = document.getElementById('histFilterTag');
+  const filteredStudent = filterId ? cls.students.find(x=>x.id===filterId) : null;
+  if(filteredStudent){
+    const s = filteredStudent;
+    const pct = s.mj ? Math.round((s.v/s.mj)*100) : 0;
+    tagEl.textContent = displayName(s);
+    summaryEl.innerHTML = `<div class="hist-student-summary">
+      <div class="stat-box"><div class="v">${s.mj}</div><div class="l">Matchs</div></div>
+      <div class="stat-box"><div class="v">${s.v}</div><div class="l">Victoires</div></div>
+      <div class="stat-box"><div class="v">${s.d}</div><div class="l">Défaites</div></div>
+      <div class="stat-box"><div class="v">${pct}%</div><div class="l">% Victoires</div></div>
+      <div class="stat-box"><div class="v">${s.elo}</div><div class="l">ELO actuel</div></div>
+      <div class="stat-box"><div class="v">${s.masteryElo||0}</div><div class="l">ELO Maîtrises</div></div>
+    </div>`;
+  } else {
+    tagEl.textContent = 'Tous les élèves';
+    summaryEl.innerHTML = '';
+  }
+
+  // ---- liste détaillée (matchs + maîtrises), filtrée sur l'élève sélectionné le cas échéant ----
+  let matches = DB.matches.filter(m=>m.classId===cls.id);
+  let awards = DB.masteryAwards.filter(a=>a.classId===cls.id);
+  if(filterId){
+    matches = matches.filter(m=> m.playerAId===filterId || m.playerBId===filterId);
+    awards = awards.filter(a=> a.studentId===filterId);
+  }
+  const all = [...matches.map(m=>({...m, _type:'match'})), ...awards.map(a=>({...a, _type:'award'}))].sort((a,b)=>b.date-a.date);
   const list = document.getElementById('historyList');
   if(!all.length){ list.innerHTML = '<p style="font-size:12px;color:var(--ink-soft);">Aucune performance enregistrée.</p>'; return; }
   list.innerHTML = all.map(item=>{
@@ -1545,6 +1589,10 @@ function wireEvents(){
     toast('Administration verrouillée','ok');
   });
   document.getElementById('adminPassInput').addEventListener('keydown', (e)=>{ if(e.key==='Enter') tryAdminUnlock(); });
+  document.getElementById('btnHistFilterAll').addEventListener('click', ()=>{
+    STATE.adminHistoryFilter = null;
+    renderAdminHistoryPanel();
+  });
   document.querySelectorAll('.tabs-sub button').forEach(b=> b.addEventListener('click', ()=>{
     document.querySelectorAll('.tabs-sub button').forEach(x=>x.classList.remove('active'));
     b.classList.add('active');

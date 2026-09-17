@@ -282,6 +282,15 @@
         <!-- HISTORIQUE -->
         <div class="admin-panel" id="panel-historique">
           <div class="card">
+            <div class="section-title"><h2>Filtrer par élève</h2><span class="tag" id="histFilterTag">Tous les élèves</span></div>
+            <p style="font-size:12px;color:var(--ink-soft);margin-bottom:10px;">Clique sur un élève pour voir tout son historique (matchs et maîtrises) et repérer/supprimer un résultat en cas de triche.</p>
+            <div class="row wrap" style="gap:8px;margin-bottom:12px;">
+              <button class="btn secondary small active" id="btnHistFilterAll">Tous les élèves</button>
+            </div>
+            <div class="admin-student-tiles" id="adminStudentTiles"></div>
+            <div id="histStudentSummary"></div>
+          </div>
+          <div class="card" style="margin-top:16px;">
             <div class="section-title"><h2>Historique des performances</h2><span class="tag">Suppression possible</span></div>
             <div id="historyList"></div>
           </div>
